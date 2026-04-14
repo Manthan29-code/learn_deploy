@@ -4,6 +4,9 @@ const SOCKET_EVENTS = {
   FEED_NOTE_DELETED: "feed:noteDeleted",
   NOTE_LIKED: "note:liked",
   NOTE_UNLIKED: "note:unliked",
+  FOLLOW_ALERT: "follow:alert",
+  PROFILE_FOLLOWERS_COUNT_UPDATED: "profile:followersCountUpdated",
+  NOTIFICATION_PUSH: "notification:push",
 };
 
 export default SOCKET_EVENTS;

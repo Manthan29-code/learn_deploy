@@ -5,9 +5,12 @@ const initialState = {
   users: [],
   followers: [],
   following: [],
+  profileFollowersCount: 0,
   loading: false,
   error: null,
 };
+
+const getUserId = (user) => user?.id || user?._id;
 
 export const fetchUsers = createAsyncThunk("users/fetchUsers", async (_, { rejectWithValue }) => {
   try {
@@ -57,7 +60,37 @@ export const fetchFollowing = createAsyncThunk("users/fetchFollowing", async (us
 const usersSlice = createSlice({
   name: "users",
   initialState,
-  reducers: {},
+  reducers: {
+    applyFollowAlert: (state, action) => {
+      const { action: followAction, actor, actorId } = action.payload;
+      const resolvedActorId = actorId || getUserId(actor);
+
+      if (!resolvedActorId) {
+        return;
+      }
+
+      if (followAction === "followed") {
+        const exists = state.followers.some((item) => getUserId(item) === resolvedActorId);
+        if (!exists && actor) {
+          state.followers.unshift(actor);
+        }
+      }
+
+      if (followAction === "unfollowed") {
+        state.followers = state.followers.filter((item) => getUserId(item) !== resolvedActorId);
+      }
+    },
+    applyProfileFollowersCountUpdate: (state, action) => {
+      const { followersCount, delta = 0 } = action.payload;
+
+      if (typeof followersCount === "number") {
+        state.profileFollowersCount = followersCount;
+        return;
+      }
+
+      state.profileFollowersCount = Math.max(0, (state.profileFollowersCount || 0) + delta);
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchUsers.pending, (state) => {
@@ -73,6 +106,7 @@ const usersSlice = createSlice({
       })
       .addCase(fetchFollowers.fulfilled, (state, action) => {
         state.followers = action.payload;
+        state.profileFollowersCount = action.payload.length;
       })
       .addCase(fetchFollowing.fulfilled, (state, action) => {
         state.following = action.payload;
@@ -80,4 +114,5 @@ const usersSlice = createSlice({
   },
 });
 
+export const { applyFollowAlert, applyProfileFollowersCountUpdate } = usersSlice.actions;
 export default usersSlice.reducer;

@@ -7,7 +7,7 @@ const ProfilePage = () => {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
   const { myNotes } = useSelector((state) => state.notes);
-  const { followers, following } = useSelector((state) => state.users);
+  const { followers, following, profileFollowersCount } = useSelector((state) => state.users);
 
   useEffect(() => {
     const userId = user?._id || user?.id;
@@ -46,7 +46,7 @@ const ProfilePage = () => {
         </div>
         <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-center">
           <p className="text-xs uppercase tracking-widest text-slate-400">Followers</p>
-          <p className="mt-1 text-2xl font-black text-accentSoft">{followers.length}</p>
+          <p className="mt-1 text-2xl font-black text-accentSoft">{profileFollowersCount ?? followers.length}</p>
         </div>
         <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4 text-center">
           <p className="text-xs uppercase tracking-widest text-slate-400">Following</p>
