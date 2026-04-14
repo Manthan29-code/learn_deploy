@@ -87,12 +87,56 @@ const updateNoteList = (list, noteId, likesCount) => {
   return list.map((item) => (item._id === noteId ? { ...item, likesCount } : item));
 };
 
+const upsertNoteList = (list, note) => {
+  const existingIndex = list.findIndex((item) => item._id === note._id);
+
+  if (existingIndex === -1) {
+    return [note, ...list];
+  }
+
+  const nextList = [...list];
+  nextList[existingIndex] = { ...nextList[existingIndex], ...note };
+  return nextList;
+};
+
 const notesSlice = createSlice({
   name: "notes",
   initialState,
   reducers: {
     clearNotesError: (state) => {
       state.error = null;
+    },
+    upsertRealtimeNote: (state, action) => {
+      const note = action.payload;
+      if (!note?._id) {
+        return;
+      }
+
+      state.feedNotes = upsertNoteList(state.feedNotes, note);
+
+      if (note.isPublic) {
+        state.discoverNotes = upsertNoteList(state.discoverNotes, note);
+      } else {
+        state.discoverNotes = state.discoverNotes.filter((item) => item._id !== note._id);
+      }
+
+      if (state.myNotes.some((item) => item._id === note._id)) {
+        state.myNotes = upsertNoteList(state.myNotes, note);
+      }
+    },
+    removeRealtimeNote: (state, action) => {
+      const noteId = action.payload;
+      const remove = (list) => list.filter((item) => item._id !== noteId);
+      state.myNotes = remove(state.myNotes);
+      state.feedNotes = remove(state.feedNotes);
+      state.discoverNotes = remove(state.discoverNotes);
+      delete state.likedByMe[noteId];
+    },
+    applyRealtimeLikeCount: (state, action) => {
+      const { noteId, likesCount } = action.payload;
+      state.myNotes = updateNoteList(state.myNotes, noteId, likesCount);
+      state.feedNotes = updateNoteList(state.feedNotes, noteId, likesCount);
+      state.discoverNotes = updateNoteList(state.discoverNotes, noteId, likesCount);
     },
   },
   extraReducers: (builder) => {
@@ -157,5 +201,10 @@ const notesSlice = createSlice({
   },
 });
 
-export const { clearNotesError } = notesSlice.actions;
+export const {
+  clearNotesError,
+  upsertRealtimeNote,
+  removeRealtimeNote,
+  applyRealtimeLikeCount,
+} = notesSlice.actions;
 export default notesSlice.reducer;

@@ -1,27 +1,21 @@
 import { useEffect, useRef } from "react";
-import { io } from "socket.io-client";
+import socketService from "../services/socketService";
 
 const useSocket = ({ token, enabled = false }) => {
   const socketRef = useRef(null);
 
   useEffect(() => {
     if (!enabled || !token) {
+      socketService.disconnect();
+      socketRef.current = null;
       return undefined;
     }
 
-    const baseURL = import.meta.env.VITE_API_BASE_URL || "";
-    const socketURL = baseURL.replace(/\/api\/?$/, "");
-
-    socketRef.current = io(socketURL, {
-      auth: { token },
-      transports: ["websocket", "polling"],
-      autoConnect: true,
-    });
+    socketRef.current = socketService.connect(token);
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
+      socketService.disconnect();
+      socketRef.current = null;
     };
   }, [enabled, token]);
 
