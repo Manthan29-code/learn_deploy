@@ -34,7 +34,10 @@ export const fetchMe = createAsyncThunk("auth/fetchMe", async (_, { rejectWithVa
     const response = await api.get("/auth/me");
     return response.data.data.user;
   } catch (error) {
-    return rejectWithValue(error.response?.data?.error?.message || error.message);
+    return rejectWithValue({
+      message: error.response?.data?.error?.message || error.message,
+      status: error.response?.status || null,
+    });
   }
 });
 
@@ -82,11 +85,22 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      .addCase(fetchMe.pending, (state) => {
+        state.loading = true;
+      })
       .addCase(fetchMe.fulfilled, (state, action) => {
+        state.loading = false;
         state.user = action.payload;
       })
-      .addCase(fetchMe.rejected, (state) => {
+      .addCase(fetchMe.rejected, (state, action) => {
+        state.loading = false;
         state.user = null;
+
+        const isUnauthorized = action.payload?.status === 401;
+        if (isUnauthorized) {
+          state.token = null;
+          tokenStorage.clear();
+        }
       });
   },
 });
