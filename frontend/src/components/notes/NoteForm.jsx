@@ -22,7 +22,7 @@ const NoteForm = ({ onSubmit, loading }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border border-white/10 bg-card/70 p-4 shadow-glow">
+    <form onSubmit={handleSubmit} className="h-fit space-y-3 rounded-2xl border border-white/10 bg-card/70 p-4 shadow-glow">
       <input
         name="title"
         value={form.title}
