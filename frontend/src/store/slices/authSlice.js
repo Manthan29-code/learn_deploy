@@ -6,6 +6,8 @@ const initialState = {
   token: tokenStorage.get(),
   loading: false,
   error: null,
+  profileUpdating: false,
+  profileUpdateError: null,
 };
 
 export const registerUser = createAsyncThunk(
@@ -41,6 +43,15 @@ export const fetchMe = createAsyncThunk("auth/fetchMe", async (_, { rejectWithVa
   }
 });
 
+export const updateBio = createAsyncThunk("auth/updateBio", async (bio, { rejectWithValue }) => {
+  try {
+    const response = await api.patch("/users/me", { bio });
+    return response.data.data.user;
+  } catch (error) {
+    return rejectWithValue(error.response?.data?.error?.message || error.message);
+  }
+});
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -53,6 +64,9 @@ const authSlice = createSlice({
     },
     clearAuthError: (state) => {
       state.error = null;
+    },
+    clearProfileUpdateError: (state) => {
+      state.profileUpdateError = null;
     },
   },
   extraReducers: (builder) => {
@@ -101,9 +115,21 @@ const authSlice = createSlice({
           state.token = null;
           tokenStorage.clear();
         }
+      })
+      .addCase(updateBio.pending, (state) => {
+        state.profileUpdating = true;
+        state.profileUpdateError = null;
+      })
+      .addCase(updateBio.fulfilled, (state, action) => {
+        state.profileUpdating = false;
+        state.user = action.payload;
+      })
+      .addCase(updateBio.rejected, (state, action) => {
+        state.profileUpdating = false;
+        state.profileUpdateError = action.payload;
       });
   },
 });
 
-export const { logout, clearAuthError } = authSlice.actions;
+export const { logout, clearAuthError, clearProfileUpdateError } = authSlice.actions;
 export default authSlice.reducer;
