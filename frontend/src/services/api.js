@@ -24,4 +24,15 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+export const generateProfileBio = async () => {
+  const response = await api.post("/ai/profile/bio", {});
+  return response.data.data.bio;
+};
+
+export const generateNoteTitles = async (content) => {
+  const response = await api.post("/ai/notes/title", { content });
+  return response.data.data.titles;
+};
+
 export default api;
+

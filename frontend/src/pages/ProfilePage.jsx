@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { FiEdit2, FiSave, FiX } from "react-icons/fi";
+import { FiEdit2, FiSave, FiX, FiZap } from "react-icons/fi";
 import { fetchFollowers, fetchFollowing } from "../store/slices/usersSlice";
 import { fetchMyNotes } from "../store/slices/notesSlice";
+import { generateProfileBio } from "../services/api";
 import useAuth from "../hooks/useAuth";
 
 const ProfilePage = () => {
@@ -13,6 +14,9 @@ const ProfilePage = () => {
   const { updateBio, profileUpdating, profileUpdateError, clearBioError } = useAuth();
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [bio, setBio] = useState(user?.bio || "");
+  const [generatedBio, setGeneratedBio] = useState("");
+  const [bioAiLoading, setBioAiLoading] = useState(false);
+  const [bioAiError, setBioAiError] = useState("");
 
   useEffect(() => {
     const userId = user?._id || user?.id;
@@ -37,14 +41,39 @@ const ProfilePage = () => {
 
   const startEditingBio = () => {
     clearBioError();
+    setBioAiError("");
+    setGeneratedBio("");
     setBio(user.bio || "");
     setIsEditingBio(true);
   };
 
   const cancelEditingBio = () => {
     clearBioError();
+    setBioAiError("");
+    setGeneratedBio("");
     setBio(user.bio || "");
     setIsEditingBio(false);
+  };
+
+  const handleGenerateBio = async () => {
+    clearBioError();
+    setBioAiError("");
+    setBioAiLoading(true);
+    setIsEditingBio(true);
+
+    try {
+      const suggestion = await generateProfileBio();
+      setGeneratedBio(suggestion);
+    } catch (error) {
+      setBioAiError(error.response?.data?.error?.message || error.message || "Unable to generate bio");
+    } finally {
+      setBioAiLoading(false);
+    }
+  };
+
+  const useGeneratedBio = () => {
+    setBio(generatedBio);
+    setGeneratedBio("");
   };
 
   const submitBio = async (event) => {
@@ -53,6 +82,7 @@ const ProfilePage = () => {
 
     const result = await updateBio(bio.trim());
     if (!result.error) {
+      setGeneratedBio("");
       setIsEditingBio(false);
     }
   };
@@ -68,17 +98,30 @@ const ProfilePage = () => {
             <p className="break-words text-xs text-slate-500">User ID: {userId}</p>
           </div>
           {!isEditingBio ? (
-            <button
-              type="button"
-              onClick={startEditingBio}
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold text-slate-200 hover:border-accent hover:text-accentSoft"
-            >
-              <FiEdit2 /> Edit bio
-            </button>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={handleGenerateBio}
+                disabled={bioAiLoading}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold text-slate-200 hover:border-accent hover:text-accentSoft disabled:opacity-70"
+              >
+                <FiZap /> {bioAiLoading ? "Generating..." : "AI bio"}
+              </button>
+              <button
+                type="button"
+                onClick={startEditingBio}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold text-slate-200 hover:border-accent hover:text-accentSoft"
+              >
+                <FiEdit2 /> Edit bio
+              </button>
+            </div>
           ) : null}
         </div>
         {!isEditingBio ? (
-          <p className="mt-3 whitespace-pre-wrap break-words text-sm text-slate-300">{user.bio || "No bio yet"}</p>
+          <>
+            <p className="mt-3 whitespace-pre-wrap break-words text-sm text-slate-300">{user.bio || "No bio yet"}</p>
+            {bioAiError ? <p className="mt-2 text-sm text-rose-300">{bioAiError}</p> : null}
+          </>
         ) : (
           <form onSubmit={submitBio} className="mt-4 space-y-3">
             <textarea
@@ -89,14 +132,36 @@ const ProfilePage = () => {
               maxLength={250}
               className="w-full resize-none rounded-xl border border-white/20 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 outline-none focus:border-accent"
             />
+            {generatedBio ? (
+              <div className="rounded-xl border border-accent/30 bg-accent/10 p-3">
+                <p className="text-xs font-semibold uppercase text-accentSoft">AI suggestion</p>
+                <p className="mt-1 text-sm text-slate-100">{generatedBio}</p>
+                <button
+                  type="button"
+                  onClick={useGeneratedBio}
+                  className="mt-3 inline-flex items-center justify-center rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-slate-950"
+                >
+                  Use suggestion
+                </button>
+              </div>
+            ) : null}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className={`text-xs ${remainingBioCharacters < 0 ? "text-rose-300" : "text-slate-500"}`}>
                   {remainingBioCharacters} characters left
                 </p>
                 {profileUpdateError ? <p className="mt-1 text-sm text-rose-300">{profileUpdateError}</p> : null}
+                {bioAiError ? <p className="mt-1 text-sm text-rose-300">{bioAiError}</p> : null}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleGenerateBio}
+                  disabled={bioAiLoading || profileUpdating}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold text-slate-200 disabled:opacity-70"
+                >
+                  <FiZap /> {bioAiLoading ? "Generating..." : "Generate"}
+                </button>
                 <button
                   type="button"
                   onClick={cancelEditingBio}

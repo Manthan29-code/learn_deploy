@@ -6,6 +6,7 @@ const noteRoutes = require("./noteRoutes");
 const followRoutes = require("./followRoutes");
 const reactionRoutes = require("./reactionRoutes");
 const feedRoutes = require("./feedRoutes");
+const aiRoutes = require("./aiRoutes");
 
 const router = express.Router();
 
@@ -19,5 +20,7 @@ router.use("/notes", noteRoutes);
 router.use("/follows", followRoutes);
 router.use("/reactions", reactionRoutes);
 router.use("/feed", feedRoutes);
+router.use("/ai", aiRoutes);
 
 module.exports = router;
+
