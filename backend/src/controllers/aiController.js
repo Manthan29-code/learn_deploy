@@ -54,6 +54,8 @@ const sanitizeTitles = (titles) => {
     .slice(0, 3);
 };
 
+const getAiOptions = (req) => ({ aiConfig: req.user.aiConfig || {} });
+
 const generateProfileBio = async (req, res) => {
   try {
     const payload = await aiGenerationService.generateProfileBio(
@@ -63,7 +65,8 @@ const generateProfileBio = async (req, res) => {
         noteCount: req.user.noteCount,
         followersCount: req.user.followersCount,
         followingCount: req.user.followingCount,
-      })
+      }),
+      getAiOptions(req)
     );
 
     const bio = sanitizeBio(payload.bio);
@@ -92,7 +95,8 @@ const generateNoteTitles = async (req, res) => {
 
   try {
     const payload = await aiGenerationService.generateNoteTitles(
-      buildNoteTitlePrompt({ content: value.content })
+      buildNoteTitlePrompt({ content: value.content }),
+      getAiOptions(req)
     );
 
     const titles = sanitizeTitles(payload.titles);
@@ -121,7 +125,8 @@ const generateNoteSummary = async (req, res) => {
 
   try {
     const payload = await aiGenerationService.generateNoteSummary(
-      buildNoteSummaryPrompt({ title: value.title, content: value.content })
+      buildNoteSummaryPrompt({ title: value.title, content: value.content }),
+      getAiOptions(req)
     );
 
     const summary = sanitizeSummary(payload.summary);
@@ -154,7 +159,8 @@ const rewriteNote = async (req, res) => {
         title: value.title,
         content: value.content,
         mode: value.mode,
-      })
+      }),
+      getAiOptions(req)
     );
 
     const content = sanitizeRewrite(payload.content);

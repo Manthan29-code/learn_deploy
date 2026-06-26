@@ -7,7 +7,8 @@ const userController = require("../controllers/userController");
 const router = express.Router();
 
 router.get("/", asyncHandler(userController.listUsers));
-router.get("/:userId", asyncHandler(userController.getUserById));
 router.patch("/me", asyncHandler(authMiddleware), asyncHandler(userController.updateMe));
+router.patch("/me/ai-config", asyncHandler(authMiddleware), asyncHandler(userController.updateMyAiConfig));
+router.get("/:userId", asyncHandler(userController.getUserById));
 
 module.exports = router;

@@ -8,6 +8,8 @@ const initialState = {
   error: null,
   profileUpdating: false,
   profileUpdateError: null,
+  aiConfigUpdating: false,
+  aiConfigError: null,
 };
 
 export const registerUser = createAsyncThunk(
@@ -52,6 +54,18 @@ export const updateBio = createAsyncThunk("auth/updateBio", async (bio, { reject
   }
 });
 
+export const updateAiConfig = createAsyncThunk(
+  "auth/updateAiConfig",
+  async ({ apiKey, geminiModel, clearCustom = false }, { rejectWithValue }) => {
+    try {
+      const response = await api.patch("/users/me/ai-config", { apiKey, geminiModel, clearCustom });
+      return response.data.data.user;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.error?.message || error.message);
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -67,6 +81,9 @@ const authSlice = createSlice({
     },
     clearProfileUpdateError: (state) => {
       state.profileUpdateError = null;
+    },
+    clearAiConfigError: (state) => {
+      state.aiConfigError = null;
     },
   },
   extraReducers: (builder) => {
@@ -127,9 +144,21 @@ const authSlice = createSlice({
       .addCase(updateBio.rejected, (state, action) => {
         state.profileUpdating = false;
         state.profileUpdateError = action.payload;
+      })
+      .addCase(updateAiConfig.pending, (state) => {
+        state.aiConfigUpdating = true;
+        state.aiConfigError = null;
+      })
+      .addCase(updateAiConfig.fulfilled, (state, action) => {
+        state.aiConfigUpdating = false;
+        state.user = action.payload;
+      })
+      .addCase(updateAiConfig.rejected, (state, action) => {
+        state.aiConfigUpdating = false;
+        state.aiConfigError = action.payload;
       });
   },
 });
 
-export const { logout, clearAuthError, clearProfileUpdateError } = authSlice.actions;
+export const { logout, clearAuthError, clearProfileUpdateError, clearAiConfigError } = authSlice.actions;
 export default authSlice.reducer;

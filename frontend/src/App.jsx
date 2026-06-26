@@ -5,6 +5,7 @@ import Layout from "./components/common/Layout";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import useAuth from "./hooks/useAuth";
 import FeedPage from "./pages/FeedPage";
+import AiConfigPage from "./pages/AiConfigPage";
 import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -43,6 +44,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ai"
+          element={
+            <ProtectedRoute>
+              <AiConfigPage />
             </ProtectedRoute>
           }
         />

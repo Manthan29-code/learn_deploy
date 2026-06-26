@@ -5,10 +5,18 @@ const ApiError = require("../utils/apiError");
 const sendResponse = require("../utils/apiResponse");
 const pickUserSafe = require("../utils/pickUserSafe");
 
+const GEMINI_MODEL_PATTERN = /^gemini-[a-z0-9.-]+$/i;
+
 const updateSchema = Joi.object({
   name: Joi.string().min(2).max(50),
   bio: Joi.string().allow("").max(250),
 }).min(1);
+
+const updateAiConfigSchema = Joi.object({
+  apiKey: Joi.string().trim().allow("").max(500).required(),
+  geminiModel: Joi.string().trim().allow("").max(100).required(),
+  clearCustom: Joi.boolean().default(false),
+});
 
 const listUsers = async (req, res) => {
   const limit = Math.min(Number(req.query.limit || 20), 50);
@@ -56,8 +64,37 @@ const updateMe = async (req, res) => {
   return sendResponse(res, 200, { user: pickUserSafe(req.user) }, "Profile updated");
 };
 
+const updateMyAiConfig = async (req, res) => {
+  const { error, value } = updateAiConfigSchema.validate(req.body, { abortEarly: false });
+  if (error) {
+    throw new ApiError(400, "Validation failed", error.details.map((d) => d.message));
+  }
+
+  const apiKey = value.apiKey.trim();
+  const geminiModel = value.geminiModel.trim();
+
+  if (geminiModel && !GEMINI_MODEL_PATTERN.test(geminiModel)) {
+    throw new ApiError(400, "Validation failed", ["Gemini model must look like gemini-2.5-flash"]);
+  }
+
+  if (value.clearCustom) {
+    req.user.aiConfig.googleApiKey = "";
+    req.user.aiConfig.geminiModel = "";
+  } else {
+    if (apiKey) {
+      req.user.aiConfig.googleApiKey = apiKey;
+    }
+    req.user.aiConfig.geminiModel = geminiModel;
+  }
+
+  await req.user.save();
+
+  return sendResponse(res, 200, { user: pickUserSafe(req.user) }, "AI configuration updated");
+};
+
 module.exports = {
   listUsers,
   getUserById,
   updateMe,
+  updateMyAiConfig,
 };

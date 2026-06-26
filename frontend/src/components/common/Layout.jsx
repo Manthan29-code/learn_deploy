@@ -1,6 +1,6 @@
 import { useState } from "react";
+import { FiKey, FiLogOut, FiMenu, FiUsers, FiX } from "react-icons/fi";
 import { FaRegStickyNote } from "react-icons/fa";
-import { FiLogOut, FiMenu, FiUsers, FiX } from "react-icons/fi";
 import { NavLink } from "react-router-dom";
 import { useSelector } from "react-redux";
 import NotificationToasts from "./NotificationToasts";
@@ -38,6 +38,13 @@ const Layout = ({ onLogout, children }) => {
             <NavLink to="/profile" className={linkClass}>
               Profile
             </NavLink>
+            {user ? (
+              <NavLink to="/ai" className={linkClass}>
+                <span className="inline-flex items-center gap-2">
+                  <FiKey /> AI
+                </span>
+              </NavLink>
+            ) : null}
           </nav>
 
           {user ? (
@@ -73,6 +80,13 @@ const Layout = ({ onLogout, children }) => {
                 <NavLink to="/profile" onClick={closeMenu} className={linkClass}>
                   Profile
                 </NavLink>
+                {user ? (
+                  <NavLink to="/ai" onClick={closeMenu} className={linkClass}>
+                    <span className="inline-flex items-center gap-2">
+                      <FiKey /> AI
+                    </span>
+                  </NavLink>
+                ) : null}
               </nav>
 
               {user ? (

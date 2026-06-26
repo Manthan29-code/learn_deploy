@@ -7,7 +7,8 @@ const env = {
   CORS_ORIGIN: process.env.CORS_ORIGIN || "http://localhost:5173",
   LOG_LEVEL: process.env.LOG_LEVEL || "debug",
   GOOGLE_API_KEY: process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY,
-  GEMINI_MODEL: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+  GEMINI_MODEL: process.env.GEMINI_MODEL,
+  DEFAULT_GEMINI_MODEL: "gemini-2.5-flash",
   AI_REQUEST_TIMEOUT_MS: Number(process.env.AI_REQUEST_TIMEOUT_MS || 20000),
 };
 

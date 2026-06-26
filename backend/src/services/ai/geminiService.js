@@ -30,15 +30,23 @@ const withTimeout = async (promise) => {
   }
 };
 
-const createModel = async ({ temperature = 0.4, maxOutputTokens = 2000 } = {}) => {
-  if (!env.GOOGLE_API_KEY) {
-    throw new ApiError(503, "Google AI API key is not configured. Set GOOGLE_API_KEY in backend .env");
+const resolveAiConfig = (aiConfig = {}) => {
+  return {
+    apiKey: env.GOOGLE_API_KEY || aiConfig.googleApiKey || "",
+    model: env.GEMINI_MODEL || aiConfig.geminiModel || env.DEFAULT_GEMINI_MODEL,
+  };
+};
+
+const createModel = async ({ temperature = 0.4, maxOutputTokens = 512, aiConfig } = {}) => {
+  const resolved = resolveAiConfig(aiConfig);
+  if (!resolved.apiKey) {
+    throw new ApiError(503, "Google AI API key is not configured. Add GOOGLE_API_KEY in .env or save one in AI settings.");
   }
 
   const { ChatGoogle, z } = await loadLangChain();
   const model = new ChatGoogle({
-    apiKey: env.GOOGLE_API_KEY,
-    model: env.GEMINI_MODEL,
+    apiKey: resolved.apiKey,
+    model: resolved.model,
     temperature,
     maxOutputTokens,
     maxRetries: 2,
@@ -47,8 +55,8 @@ const createModel = async ({ temperature = 0.4, maxOutputTokens = 2000 } = {}) =
   return { model, z };
 };
 
-const invokeStructured = async ({ prompt, schema, temperature, maxOutputTokens, fallbackMessage }) => {
-  const { model } = await createModel({ temperature, maxOutputTokens });
+const invokeStructured = async ({ prompt, schema, temperature, maxOutputTokens, aiConfig, fallbackMessage }) => {
+  const { model } = await createModel({ temperature, maxOutputTokens, aiConfig });
 
   try {
     return await withTimeout(model.withStructuredOutput(schema).invoke(prompt));
@@ -61,7 +69,7 @@ const invokeStructured = async ({ prompt, schema, temperature, maxOutputTokens, 
   }
 };
 
-const generateProfileBio = async (prompt) => {
+const generateProfileBio = async (prompt, options = {}) => {
   const { z } = await loadLangChain();
   const schema = z.object({
     bio: z.string().min(1).max(160).describe("A short profile bio suggestion"),
@@ -71,12 +79,13 @@ const generateProfileBio = async (prompt) => {
     prompt,
     schema,
     temperature: 0.7,
-    maxOutputTokens: 2000,
+    maxOutputTokens: 128,
+    aiConfig: options.aiConfig,
     fallbackMessage: "Unable to generate profile bio with LangChain",
   });
 };
 
-const generateNoteTitles = async (prompt) => {
+const generateNoteTitles = async (prompt, options = {}) => {
   const { z } = await loadLangChain();
   const schema = z.object({
     titles: z.array(z.string().min(3).max(120)).min(1).max(3).describe("Note title suggestions"),
@@ -86,12 +95,13 @@ const generateNoteTitles = async (prompt) => {
     prompt,
     schema,
     temperature: 0.5,
-    maxOutputTokens: 2000,
+    maxOutputTokens: 192,
+    aiConfig: options.aiConfig,
     fallbackMessage: "Unable to generate note titles with LangChain",
   });
 };
 
-const generateNoteSummary = async (prompt) => {
+const generateNoteSummary = async (prompt, options = {}) => {
   const { z } = await loadLangChain();
   const schema = z.object({
     summary: z.string().min(1).max(280).describe("A short summary of the note"),
@@ -101,12 +111,13 @@ const generateNoteSummary = async (prompt) => {
     prompt,
     schema,
     temperature: 0.3,
-    maxOutputTokens: 2000,
+    maxOutputTokens: 160,
+    aiConfig: options.aiConfig,
     fallbackMessage: "Unable to generate note summary with LangChain",
   });
 };
 
-const generateNoteRewrite = async (prompt) => {
+const generateNoteRewrite = async (prompt, options = {}) => {
   const { z } = await loadLangChain();
   const schema = z.object({
     content: z.string().min(1).max(2000).describe("The rewritten note content"),
@@ -116,7 +127,8 @@ const generateNoteRewrite = async (prompt) => {
     prompt,
     schema,
     temperature: 0.5,
-    maxOutputTokens: 2000,
+    maxOutputTokens: 768,
+    aiConfig: options.aiConfig,
     fallbackMessage: "Unable to rewrite note content with LangChain",
   });
 };
