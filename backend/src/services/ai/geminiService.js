@@ -47,36 +47,83 @@ const createModel = async ({ temperature = 0.4, maxOutputTokens = 2000 } = {}) =
   return { model, z };
 };
 
-const generateProfileBio = async (prompt) => {
-  const { model, z } = await createModel({ temperature: 0.7, maxOutputTokens: 2000 });
-  const schema = z.object({
-    bio: z.string().min(1).max(160).describe("A short profile bio suggestion"),
-  });
-
-  try {
-    const response = await withTimeout(model.withStructuredOutput(schema).invoke(prompt));
-    return response
-  } catch (error) {
-    if (error instanceof ApiError) throw error;
-    throw new ApiError(502, error.message || "Unable to generate profile bio with LangChain");
-  }
-};
-
-const generateNoteTitles = async (prompt) => {
-  const { model, z } = await createModel({ temperature: 0.5, maxOutputTokens: 2000 });
-  const schema = z.object({
-    titles: z.array(z.string().min(3).max(120)).min(1).max(3).describe("Note title suggestions"),
-  });
+const invokeStructured = async ({ prompt, schema, temperature, maxOutputTokens, fallbackMessage }) => {
+  const { model } = await createModel({ temperature, maxOutputTokens });
 
   try {
     return await withTimeout(model.withStructuredOutput(schema).invoke(prompt));
   } catch (error) {
-    if (error instanceof ApiError) throw error;
-    throw new ApiError(502, error.message || "Unable to generate note titles with LangChain");
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
+    throw new ApiError(502, error.message || fallbackMessage);
   }
+};
+
+const generateProfileBio = async (prompt) => {
+  const { z } = await loadLangChain();
+  const schema = z.object({
+    bio: z.string().min(1).max(160).describe("A short profile bio suggestion"),
+  });
+
+  return invokeStructured({
+    prompt,
+    schema,
+    temperature: 0.7,
+    maxOutputTokens: 2000,
+    fallbackMessage: "Unable to generate profile bio with LangChain",
+  });
+};
+
+const generateNoteTitles = async (prompt) => {
+  const { z } = await loadLangChain();
+  const schema = z.object({
+    titles: z.array(z.string().min(3).max(120)).min(1).max(3).describe("Note title suggestions"),
+  });
+
+  return invokeStructured({
+    prompt,
+    schema,
+    temperature: 0.5,
+    maxOutputTokens: 2000,
+    fallbackMessage: "Unable to generate note titles with LangChain",
+  });
+};
+
+const generateNoteSummary = async (prompt) => {
+  const { z } = await loadLangChain();
+  const schema = z.object({
+    summary: z.string().min(1).max(280).describe("A short summary of the note"),
+  });
+
+  return invokeStructured({
+    prompt,
+    schema,
+    temperature: 0.3,
+    maxOutputTokens: 2000,
+    fallbackMessage: "Unable to generate note summary with LangChain",
+  });
+};
+
+const generateNoteRewrite = async (prompt) => {
+  const { z } = await loadLangChain();
+  const schema = z.object({
+    content: z.string().min(1).max(2000).describe("The rewritten note content"),
+  });
+
+  return invokeStructured({
+    prompt,
+    schema,
+    temperature: 0.5,
+    maxOutputTokens: 2000,
+    fallbackMessage: "Unable to rewrite note content with LangChain",
+  });
 };
 
 module.exports = {
   generateProfileBio,
   generateNoteTitles,
+  generateNoteSummary,
+  generateNoteRewrite,
 };

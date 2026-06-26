@@ -34,5 +34,14 @@ export const generateNoteTitles = async (content) => {
   return response.data.data.titles;
 };
 
-export default api;
+export const generateNoteSummary = async ({ title, content }) => {
+  const response = await api.post("/ai/notes/summary", { title, content });
+  return response.data.data.summary;
+};
 
+export const rewriteNoteDraft = async ({ title, content, mode }) => {
+  const response = await api.post("/ai/notes/rewrite", { title, content, mode });
+  return response.data.data;
+};
+
+export default api;
