@@ -15,7 +15,7 @@ const likeNote = async (req, res) => {
 
   const existing = await Reaction.findOne({ user: req.user._id, note: noteId, type: "like" });
   if (existing) {
-    return sendResponse(res, 200, { liked: true }, "Already liked");
+    return sendResponse(res, 200, { liked: true, likesCount: note.likesCount }, "Already liked");
   }
 
   await Reaction.create({ user: req.user._id, note: noteId, type: "like" });

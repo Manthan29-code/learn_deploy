@@ -87,6 +87,14 @@ const updateNoteList = (list, noteId, likesCount) => {
   return list.map((item) => (item._id === noteId ? { ...item, likesCount } : item));
 };
 
+const updateLikedByMe = (likedByMe, notes) => {
+  notes.forEach((note) => {
+    if (typeof note.likedByMe === "boolean") {
+      likedByMe[note._id] = note.likedByMe;
+    }
+  });
+};
+
 const upsertNoteList = (list, note) => {
   const existingIndex = list.findIndex((item) => item._id === note._id);
 
@@ -148,6 +156,7 @@ const notesSlice = createSlice({
       .addCase(fetchDiscoverNotes.fulfilled, (state, action) => {
         state.loading = false;
         state.discoverNotes = action.payload;
+        updateLikedByMe(state.likedByMe, action.payload);
       })
       .addCase(fetchDiscoverNotes.rejected, (state, action) => {
         state.loading = false;
@@ -155,9 +164,11 @@ const notesSlice = createSlice({
       })
       .addCase(fetchMyFeed.fulfilled, (state, action) => {
         state.feedNotes = action.payload;
+        updateLikedByMe(state.likedByMe, action.payload);
       })
       .addCase(fetchMyNotes.fulfilled, (state, action) => {
         state.myNotes = action.payload;
+        updateLikedByMe(state.likedByMe, action.payload);
       })
       .addCase(createNote.pending, (state) => {
         state.submitLoading = true;
