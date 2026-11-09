@@ -6,8 +6,12 @@ const sendResponse = require("../utils/apiResponse");
 const aiGenerationService = require("../services/ai/geminiService");
 const {
   buildBioPrompt,
+  buildBioSystemPrompt,
+  buildNoteTitleSystemPrompt,
   buildNoteTitlePrompt,
+  buildNoteSummarySystemPrompt,
   buildNoteSummaryPrompt,
+  buildNoteRewriteSystemPrompt,
   buildNoteRewritePrompt,
 } = require("../services/ai/promptService");
 
@@ -66,7 +70,8 @@ const generateProfileBio = async (req, res) => {
         followersCount: req.user.followersCount,
         followingCount: req.user.followingCount,
       }),
-      getAiOptions(req)
+      getAiOptions(req),
+      buildBioSystemPrompt()
     );
 
     const bio = sanitizeBio(payload?.bio);
@@ -96,7 +101,8 @@ const generateNoteTitles = async (req, res) => {
   try {
     const payload = await aiGenerationService.generateNoteTitles(
       buildNoteTitlePrompt({ content: value.content }),
-      getAiOptions(req)
+      getAiOptions(req),
+      buildNoteTitleSystemPrompt()
     );
 
     const titles = sanitizeTitles(payload?.titles);
@@ -126,7 +132,8 @@ const generateNoteSummary = async (req, res) => {
   try {
     const payload = await aiGenerationService.generateNoteSummary(
       buildNoteSummaryPrompt({ title: value.title, content: value.content }),
-      getAiOptions(req)
+      getAiOptions(req),
+      buildNoteSummarySystemPrompt()
     );
 
     const summary = sanitizeSummary(payload?.summary);
@@ -160,7 +167,8 @@ const rewriteNote = async (req, res) => {
         content: value.content,
         mode: value.mode,
       }),
-      getAiOptions(req)
+      getAiOptions(req),
+      buildNoteRewriteSystemPrompt()
     );
 
     const content = sanitizeRewrite(payload?.content);

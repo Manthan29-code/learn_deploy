@@ -35,22 +35,26 @@ const withTimeout = async (promise) => {
   }
 };
 
+const getResponseText = (response) => {
+  const content = typeof response === "string" ? response : response?.content ?? response?.kwargs?.content;
+  return Array.isArray(content)
+    ? content.map((part) => (typeof part === "string" ? part : part?.text || "")).join("")
+    : typeof content === "string"
+      ? content
+      : content && typeof content === "object" && typeof content.text === "string"
+        ? content.text
+        : "";
+};
+
 const parseStructuredResponse = (response, schema, fallbackMessage) => {
-  if (response && typeof response === "object" && !Array.isArray(response) && !("content" in response)) {
+  if (response && typeof response === "object" && !Array.isArray(response) && !response.content && !response.kwargs?.content) {
     const result = schema.safeParse(response);
     if (result.success) {
       return result.data;
     }
   }
 
-  const content = typeof response === "string" ? response : response?.content;
-  const text = Array.isArray(content)
-    ? content.map((part) => (typeof part === "string" ? part : part?.text || "")).join("")
-    : typeof content === "string"
-      ? content
-      : content && typeof content === "object" && typeof content.text === "string"
-        ? content.text
-      : "";
+  const text = getResponseText(response);
 
   if (!text.trim()) {
     throw new ApiError(502, fallbackMessage);
@@ -103,10 +107,30 @@ const createModel = async ({ temperature = 0.4, maxOutputTokens = 512, aiConfig 
   return { model, z };
 };
 
-const invokeStructured = async ({ prompt, schema, temperature, maxOutputTokens, aiConfig, fallbackMessage }) => {
+const invokeStructured = async ({
+  prompt,
+  systemPrompt,
+  schema,
+  temperature,
+  maxOutputTokens,
+  aiConfig,
+  fallbackMessage,
+}) => {
   try {
     const { model } = await createModel({ temperature, maxOutputTokens, aiConfig });
-    const response = await withTimeout(model.invoke(prompt));
+    const response = await withTimeout(
+      model.invoke([
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt },
+      ])
+    );
+    logger.debug("AI response received", {
+      feature: fallbackMessage,
+      responseType: typeof response,
+      contentType: typeof response?.content,
+      contentParts: Array.isArray(response?.content) ? response.content.length : null,
+      finishReason: response?.response_metadata?.finishReason || response?.response_metadata?.finish_reason || null,
+    });
     return parseStructuredResponse(response, schema, fallbackMessage);
   } catch (error) {
     logger.error("AI generation failed", {
@@ -123,14 +147,15 @@ const invokeStructured = async ({ prompt, schema, temperature, maxOutputTokens, 
   }
 };
 
-const generateProfileBio = async (prompt, options = {}) => {
+const generateProfileBio = async (prompt, options = {}, systemPrompt) => {
   const { z } = await loadLangChain();
   const schema = z.object({
-    bio: z.string().min(1).max(160).describe("A short profile bio suggestion"),
+    bio: z.string().min(1).describe("A short profile bio suggestion"),
   });
 
   return invokeStructured({
     prompt,
+    systemPrompt,
     schema,
     temperature: 0.7,
     maxOutputTokens: 128,
@@ -139,14 +164,15 @@ const generateProfileBio = async (prompt, options = {}) => {
   });
 };
 
-const generateNoteTitles = async (prompt, options = {}) => {
+const generateNoteTitles = async (prompt, options = {}, systemPrompt) => {
   const { z } = await loadLangChain();
   const schema = z.object({
-    titles: z.array(z.string().min(3).max(120)).min(1).max(3).describe("Note title suggestions"),
+    titles: z.array(z.string().min(1)).min(1).max(3).describe("Note title suggestions"),
   });
 
   return invokeStructured({
     prompt,
+    systemPrompt,
     schema,
     temperature: 0.5,
     maxOutputTokens: 192,
@@ -155,14 +181,15 @@ const generateNoteTitles = async (prompt, options = {}) => {
   });
 };
 
-const generateNoteSummary = async (prompt, options = {}) => {
+const generateNoteSummary = async (prompt, options = {}, systemPrompt) => {
   const { z } = await loadLangChain();
   const schema = z.object({
-    summary: z.string().min(1).max(280).describe("A short summary of the note"),
+    summary: z.string().min(1).describe("A short summary of the note"),
   });
 
   return invokeStructured({
     prompt,
+    systemPrompt,
     schema,
     temperature: 0.3,
     maxOutputTokens: 160,
@@ -171,14 +198,15 @@ const generateNoteSummary = async (prompt, options = {}) => {
   });
 };
 
-const generateNoteRewrite = async (prompt, options = {}) => {
+const generateNoteRewrite = async (prompt, options = {}, systemPrompt) => {
   const { z } = await loadLangChain();
   const schema = z.object({
-    content: z.string().min(1).max(2000).describe("The rewritten note content"),
+    content: z.string().min(1).describe("The rewritten note content"),
   });
 
   return invokeStructured({
     prompt,
+    systemPrompt,
     schema,
     temperature: 0.5,
     maxOutputTokens: 768,

@@ -1,3 +1,9 @@
+const buildBioSystemPrompt = () => `
+You generate profile bio suggestions.
+Return a JSON object with a non-empty "bio" string.
+The bio must be 160 characters or less.
+`;
+
 const buildBioPrompt = ({ name, bio, noteCount, followersCount, followingCount }) => `
 Generate one short profile bio for a notes and social learning app.
 
@@ -21,6 +27,12 @@ Followers: ${followersCount || 0}
 Following: ${followingCount || 0}
 `;
 
+const buildNoteTitleSystemPrompt = () => `
+You generate note title suggestions.
+Return a JSON object with a "titles" array containing exactly 3 distinct non-empty strings.
+Each title must be between 3 and 120 characters.
+`;
+
 const buildNoteTitlePrompt = ({ content }) => `
 Generate concise note title suggestions.
 
@@ -35,6 +47,12 @@ Rules:
 
 Note content:
 ${content}
+`;
+
+const buildNoteSummarySystemPrompt = () => `
+You summarize notes.
+Return a JSON object with a non-empty "summary" string.
+The summary must be 280 characters or less.
 `;
 
 const buildNoteSummaryPrompt = ({ title, content }) => `
@@ -56,6 +74,13 @@ ${title || "Untitled"}
 
 Note content:
 ${content}
+`;
+
+const buildNoteRewriteSystemPrompt = () => `
+You rewrite note drafts.
+Return a JSON object with a non-empty "content" string.
+The rewritten content must be 2000 characters or less.
+Preserve the original meaning and do not invent facts.
 `;
 
 const buildNoteRewritePrompt = ({ title, content, mode }) => `
@@ -84,8 +109,12 @@ ${content}
 `;
 
 module.exports = {
+  buildBioSystemPrompt,
   buildBioPrompt,
+  buildNoteTitleSystemPrompt,
   buildNoteTitlePrompt,
+  buildNoteSummarySystemPrompt,
   buildNoteSummaryPrompt,
+  buildNoteRewriteSystemPrompt,
   buildNoteRewritePrompt,
 };
