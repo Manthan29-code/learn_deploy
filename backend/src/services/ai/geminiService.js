@@ -1,5 +1,6 @@
 const ApiError = require("../../utils/apiError");
 const { env } = require("../../config/env");
+const logger = require("../../utils/logger");
 
 const loadLangChain = async () => {
   try {
@@ -9,7 +10,11 @@ const loadLangChain = async () => {
     ]);
 
     return { ChatGoogle, z: zod.z };
-  } catch (_error) {
+  } catch (error) {
+    logger.error("Failed to load LangChain Google integration", {
+      message: error.message,
+      stack: error.stack,
+    });
     throw new ApiError(
       503,
       "LangChain Google packages are not installed. Run npm install in backend."
@@ -38,11 +43,13 @@ const parseStructuredResponse = (response, schema, fallbackMessage) => {
     }
   }
 
-  const content = response?.content;
+  const content = typeof response === "string" ? response : response?.content;
   const text = Array.isArray(content)
     ? content.map((part) => (typeof part === "string" ? part : part?.text || "")).join("")
     : typeof content === "string"
       ? content
+      : content && typeof content === "object" && typeof content.text === "string"
+        ? content.text
       : "";
 
   if (!text.trim()) {
@@ -97,12 +104,17 @@ const createModel = async ({ temperature = 0.4, maxOutputTokens = 512, aiConfig 
 };
 
 const invokeStructured = async ({ prompt, schema, temperature, maxOutputTokens, aiConfig, fallbackMessage }) => {
-  const { model } = await createModel({ temperature, maxOutputTokens, aiConfig });
-
   try {
+    const { model } = await createModel({ temperature, maxOutputTokens, aiConfig });
     const response = await withTimeout(model.invoke(prompt));
     return parseStructuredResponse(response, schema, fallbackMessage);
   } catch (error) {
+    logger.error("AI generation failed", {
+      feature: fallbackMessage,
+      message: error.message,
+      stack: error.stack,
+    });
+
     if (error instanceof ApiError) {
       throw error;
     }
