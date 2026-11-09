@@ -8,13 +8,19 @@ const errorHandler = (err, req, res, _next) => {
     method: req.method,
     statusCode,
     message: err.message,
+    stack: err.stack,
   });
+
+  const isProduction = process.env.NODE_ENV === "production";
+  const message = isProduction && statusCode >= 500
+    ? "The server could not complete this request. Please try again later."
+    : err.message || "Internal Server Error";
 
   res.status(statusCode).json({
     success: false,
     error: {
-      message: err.message || "Internal Server Error",
-      details: err.details || null,
+      message,
+      details: isProduction && statusCode >= 500 ? null : err.details || null,
     },
   });
 };

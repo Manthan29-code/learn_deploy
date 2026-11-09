@@ -30,6 +30,47 @@ const withTimeout = async (promise) => {
   }
 };
 
+const parseStructuredResponse = (response, schema, fallbackMessage) => {
+  if (response && typeof response === "object" && !Array.isArray(response) && !("content" in response)) {
+    const result = schema.safeParse(response);
+    if (result.success) {
+      return result.data;
+    }
+  }
+
+  const content = response?.content;
+  const text = Array.isArray(content)
+    ? content.map((part) => (typeof part === "string" ? part : part?.text || "")).join("")
+    : typeof content === "string"
+      ? content
+      : "";
+
+  if (!text.trim()) {
+    throw new ApiError(502, fallbackMessage);
+  }
+
+  const cleanedText = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+  const jsonStart = cleanedText.indexOf("{");
+  const jsonEnd = cleanedText.lastIndexOf("}");
+  const jsonText = jsonStart >= 0 && jsonEnd > jsonStart
+    ? cleanedText.slice(jsonStart, jsonEnd + 1)
+    : cleanedText;
+  let parsed;
+
+  try {
+    parsed = JSON.parse(jsonText);
+  } catch (_error) {
+    throw new ApiError(502, fallbackMessage);
+  }
+
+  const result = schema.safeParse(parsed);
+  if (!result.success) {
+    throw new ApiError(502, fallbackMessage);
+  }
+
+  return result.data;
+};
+
 const resolveAiConfig = (aiConfig = {}) => {
   return {
     apiKey: env.GOOGLE_API_KEY || aiConfig.googleApiKey || "",
@@ -59,7 +100,8 @@ const invokeStructured = async ({ prompt, schema, temperature, maxOutputTokens, 
   const { model } = await createModel({ temperature, maxOutputTokens, aiConfig });
 
   try {
-    return await withTimeout(model.withStructuredOutput(schema).invoke(prompt));
+    const response = await withTimeout(model.invoke(prompt));
+    return parseStructuredResponse(response, schema, fallbackMessage);
   } catch (error) {
     if (error instanceof ApiError) {
       throw error;

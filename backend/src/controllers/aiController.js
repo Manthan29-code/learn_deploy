@@ -69,7 +69,7 @@ const generateProfileBio = async (req, res) => {
       getAiOptions(req)
     );
 
-    const bio = sanitizeBio(payload.bio);
+    const bio = sanitizeBio(payload?.bio);
     if (!bio) {
       throw new ApiError(502, "AI did not return a usable bio");
     }
@@ -99,7 +99,7 @@ const generateNoteTitles = async (req, res) => {
       getAiOptions(req)
     );
 
-    const titles = sanitizeTitles(payload.titles);
+    const titles = sanitizeTitles(payload?.titles);
     if (!titles.length) {
       throw new ApiError(502, "AI did not return usable title suggestions");
     }
@@ -129,7 +129,7 @@ const generateNoteSummary = async (req, res) => {
       getAiOptions(req)
     );
 
-    const summary = sanitizeSummary(payload.summary);
+    const summary = sanitizeSummary(payload?.summary);
     if (!summary) {
       throw new ApiError(502, "AI did not return a usable summary");
     }
@@ -163,7 +163,7 @@ const rewriteNote = async (req, res) => {
       getAiOptions(req)
     );
 
-    const content = sanitizeRewrite(payload.content);
+    const content = sanitizeRewrite(payload?.content);
     if (!content) {
       throw new ApiError(502, "AI did not return usable rewritten content");
     }
